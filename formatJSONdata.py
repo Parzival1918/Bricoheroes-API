@@ -7,14 +7,16 @@ with open("dataJSON/videoInfo.json") as file:
 
 ogData = json.loads(fileContents)
 
-extraVidsCount = 1
+extraVidsCount = 13
 for videoData in ogData["videoData"]:
     season = videoData["season"]
     episode = videoData["episode"]
 
     if season == 0:
         episode = extraVidsCount
-        extraVidsCount += 1
+        videoData["episode"] = episode
+
+        extraVidsCount -= 1
 
     filename = f's{season}e{episode}.json'
 

@@ -4,6 +4,7 @@ from typing import Union
 
 import json
 from pathlib import Path
+from random import choice
 
 tags_metadata = [
     {
@@ -44,7 +45,15 @@ def informacio_episodi(temporada: int, episodi: int):
     return fileContents
 
 @app.get("/episodi-aleatori", tags=["Informació episodis"])
-def episodi_aleatori(inclou_extres: Union[bool, None] = True):
+def episodi_aleatori(inclou_extres: Union[bool, None] = False):
+    #Get a random file from the folder
+    filepath = Path("dataJSON/parsedData/")
+    files = [f for f in filepath.iterdir() if f.is_file()]
+    if not inclou_extres:
+        files = [f for f in files if (not f.stem[0].startswith("s0"))]
 
+    randomFile = choice(files)
+    with open(randomFile) as file:
+        fileContents = json.load(file)
 
-    return {}
+    return fileContents
