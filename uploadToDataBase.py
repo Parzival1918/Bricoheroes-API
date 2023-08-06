@@ -15,7 +15,7 @@ files = [f for f in filepath.iterdir() if f.is_file()]
 for file in files:
     with open(file) as f:
         fileContents = f.read()
-    print(fileContents)
-    print()
-    # db.put(fileContents, file.stem)
+    # print(fileContents)
+    # print()
+    db.put(fileContents, file.stem)
     print(f"Uploaded {file.stem} to the database")
