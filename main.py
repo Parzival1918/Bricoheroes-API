@@ -75,7 +75,16 @@ def episodis_temporada(temporada: int):
 
     return fileContents
 
-@app.get("/busca-episodi/{cerca}", tags=["Informació episodis"])
+def search_word(word: str, text: str):
+    for w in text.split(sep=" "):
+        if word == w: #Exact match
+            print(f"Exact matching {w} |-| {word}")
+            return True
+        if (word in w or w in word) and abs(len(word)-len(w)) <= 2 and len(w) > 2:
+            print(f"Matching {w} |-| {word}")
+            return True
+
+@app.get("/busca-episodi/{cerca}", tags=["Informació episodis"], description="Busca un episodi a partir d'una paraula clau.")
 def busca_epsiodi(cerca: str, cerca_descripcio: Union[bool, None] = False):
     #Get the episode data
     filepath = Path("dataJSON/parsedData/")
@@ -87,9 +96,14 @@ def busca_epsiodi(cerca: str, cerca_descripcio: Union[bool, None] = False):
 
     matchingEps = []
     for episode in fileContents:
-        if episode["videoTitle"].lower().find(cerca.lower()) != -1:
+        # if episode["videoTitle"].lower().find(cerca.lower()) != -1:
+        #     matchingEps.append(episode)
+        # elif cerca_descripcio and episode["videoDescription"].lower().find(cerca.lower()) != -1:
+        #     matchingEps.append(episode)
+        if search_word(cerca.lower(), episode["videoTitle"].lower()):
             matchingEps.append(episode)
-        elif cerca_descripcio and episode["videoDescription"].lower().find(cerca.lower()) != -1:
-            matchingEps.append(episode)
+        elif cerca_descripcio:
+            if search_word(cerca.lower(), episode["videoDescription"].lower()):
+                matchingEps.append(episode)
 
     return matchingEps
