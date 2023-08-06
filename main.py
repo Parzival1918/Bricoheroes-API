@@ -31,7 +31,7 @@ app = FastAPI(
     redoc_url="/alt-docs",
 )
 
-@app.get("/info-episodi/{temporada}/{episodi}", tags=["Informació episodis"])
+@app.get("/info-episodi/{temporada}/{episodi}", tags=["Informació episodis"], description="Obté l'informació d'un episodi.")
 def informacio_episodi(temporada: int, episodi: int):
     filename = f"s{temporada}e{episodi}.json"
     filepath = Path(f"dataJSON/parsedData/{filename}")
@@ -44,13 +44,13 @@ def informacio_episodi(temporada: int, episodi: int):
 
     return fileContents
 
-@app.get("/episodi-aleatori", tags=["Informació episodis"])
+@app.get("/episodi-aleatori", tags=["Informació episodis"], description="Obté l'informació d'un episodi aleatori de la sèrie.")
 def episodi_aleatori(inclou_extres: Union[bool, None] = False):
     #Get a random file from the folder
     filepath = Path("dataJSON/parsedData/")
     files = [f for f in filepath.iterdir() if f.is_file()]
     if not inclou_extres:
-        files = [f for f in files if (not f.stem[0].startswith("s0"))]
+        files = [f for f in files if (not f.stem.startswith("s0"))]
 
     randomFile = choice(files)
     with open(randomFile) as file:
@@ -58,13 +58,15 @@ def episodi_aleatori(inclou_extres: Union[bool, None] = False):
 
     return fileContents
 
-@app.get("/episodis-temporada/{temporada}", tags=["Informació episodis"])
+@app.get("/episodis-temporada/{temporada}", tags=["Informació episodis"], description="Obté tots els episodis d'una temporada.")
 def episodis_temporada(temporada: int):
     filepath = Path("dataJSON/parsedData/")
     files = [f for f in filepath.iterdir() if f.is_file()]
-    print(len(files))
-    files = [f for f in files if (f.stem[0].startswith(f"s{temporada}"))]
-    print(len(files))
+    files = [f for f in files if (f.stem.startswith(f"s{temporada}"))]
+    if len(files) == 0:
+        raise HTTPException(status_code=401, detail="Temporada no existeix")
+
+    files = sorted(files, key=lambda f: int(f.stem.removeprefix(f"s{temporada}e"))) #Sort in ascending order
 
     fileContents = []
     for file in files:
@@ -72,3 +74,22 @@ def episodis_temporada(temporada: int):
             fileContents.append(json.load(f))
 
     return fileContents
+
+@app.get("/busca-episodi/{cerca}", tags=["Informació episodis"])
+def busca_epsiodi(cerca: str, cerca_descripcio: Union[bool, None] = False):
+    #Get the episode data
+    filepath = Path("dataJSON/parsedData/")
+    files = [f for f in filepath.iterdir() if f.is_file()]
+    fileContents = []
+    for file in files:
+        with open(file) as f:
+            fileContents.append(json.load(f))
+
+    matchingEps = []
+    for episode in fileContents:
+        if episode["videoTitle"].lower().find(cerca.lower()) != -1:
+            matchingEps.append(episode)
+        elif cerca_descripcio and episode["videoDescription"].lower().find(cerca.lower()) != -1:
+            matchingEps.append(episode)
+
+    return matchingEps
