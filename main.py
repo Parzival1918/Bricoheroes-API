@@ -14,7 +14,7 @@ tags_metadata = [
 ]
 
 description = """
-Obté informació dels capítols de Bricoheroes a Youtube.
+Obté informació dels capítols de Bricoheroes de Youtube.
 """
 
 app = FastAPI(
@@ -55,5 +55,20 @@ def episodi_aleatori(inclou_extres: Union[bool, None] = False):
     randomFile = choice(files)
     with open(randomFile) as file:
         fileContents = json.load(file)
+
+    return fileContents
+
+@app.get("/episodis-temporada/{temporada}", tags=["Informació episodis"])
+def episodis_temporada(temporada: int):
+    filepath = Path("dataJSON/parsedData/")
+    files = [f for f in filepath.iterdir() if f.is_file()]
+    print(len(files))
+    files = [f for f in files if (f.stem[0].startswith(f"s{temporada}"))]
+    print(len(files))
+
+    fileContents = []
+    for file in files:
+        with open(file) as f:
+            fileContents.append(json.load(f))
 
     return fileContents
