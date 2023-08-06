@@ -17,5 +17,5 @@ for file in files:
         fileContents = f.read()
     # print(fileContents)
     # print()
-    db.put(fileContents, file.stem)
+    # db.put(fileContents, file.stem)
     print(f"Uploaded {file.stem} to the database")

@@ -107,3 +107,21 @@ def busca_epsiodi(cerca: str, cerca_descripcio: Union[bool, None] = False):
                 matchingEps.append(episode)
 
     return matchingEps
+
+@app.get("/test-DetaBase", tags=["Informació episodis"], description="Test de la base de dades.")
+def test_DetaBase():
+    from deta import Deta
+    from pathlib import Path
+    
+    # Initialize with a Project Key from DetaBaseKey.txt
+    with open("DetaBaseKey.txt") as f:
+        key = f.read()
+    
+    deta = Deta(key)
+    db = deta.Base("bricoheroes-base")
+    
+    # Read from the database
+    data = db.get("s1e1")
+    data["value"] = json.loads(data["value"])
+    
+    return data
