@@ -5,6 +5,14 @@ from typing import Union
 import json
 from pathlib import Path
 from random import choice
+from deta import Deta
+
+# Initialize with a Project Key from DetaBaseKey.txt
+with open("DetaBaseKey.txt") as f:
+    key = f.read()
+    
+deta = Deta(key)
+db = deta.Base("bricoheroes-base")
 
 tags_metadata = [
     {
@@ -33,47 +41,63 @@ app = FastAPI(
 
 @app.get("/info-episodi/{temporada}/{episodi}", tags=["Informació episodis"], description="Obté l'informació d'un episodi.")
 def informacio_episodi(temporada: int, episodi: int):
-    filename = f"s{temporada}e{episodi}.json"
-    filepath = Path(f"dataJSON/parsedData/{filename}")
-    #Check that file exists
-    if filepath.is_file():
-        with open(filepath) as file:
-            fileContents = json.load(file)
-    else:
-        raise HTTPException(status_code=400, detail="L'episodi d'aquesta temporada no existeix")
+    # Create the key
+    key = f"s{temporada}e{episodi}"
 
-    return fileContents
+    # Read from the database
+    data = db.get(key)
+    if data is None:
+        raise HTTPException(status_code=401, detail="Episodi no existeix")
+
+    data["value"] = json.loads(data["value"])    
+
+    return data
 
 @app.get("/episodi-aleatori", tags=["Informació episodis"], description="Obté l'informació d'un episodi aleatori de la sèrie.")
 def episodi_aleatori(inclou_extres: Union[bool, None] = False):
-    #Get a random file from the folder
-    filepath = Path("dataJSON/parsedData/")
-    files = [f for f in filepath.iterdir() if f.is_file()]
+    # Get the episode data from continguts in the database
+    continguts = db.get("continguts")
+
+    #Get a random season
+    keys = list(continguts.keys())
+    keys.remove("key") #remove continguts key
     if not inclou_extres:
-        files = [f for f in files if (not f.stem.startswith("s0"))]
+        keys.remove("Temporada 0") #remove Extres key
+    print(keys)
 
-    randomFile = choice(files)
-    with open(randomFile) as file:
-        fileContents = json.load(file)
+    temporada = choice(keys)
+    print(temporada)
 
-    return fileContents
+    #Get a random episode
+    episodi = choice(range(1, continguts[temporada]+1))
+    print(f"Episodi: {episodi}")
+
+    #Get the episode data
+    temporada = temporada.replace("Temporada ", "")
+    key = f"s{temporada}e{episodi}"
+    data = db.get(key)
+    data["value"] = json.loads(data["value"])
+
+    return data
 
 @app.get("/episodis-temporada/{temporada}", tags=["Informació episodis"], description="Obté tots els episodis d'una temporada.")
 def episodis_temporada(temporada: int):
-    filepath = Path("dataJSON/parsedData/")
-    files = [f for f in filepath.iterdir() if f.is_file()]
-    files = [f for f in files if (f.stem.startswith(f"s{temporada}"))]
-    if len(files) == 0:
-        raise HTTPException(status_code=401, detail="Temporada no existeix")
+    #Get the amount of episodes in the season
+    continguts = db.get("continguts")
+    try:
+        numEpisodes = continguts[f"Temporada {temporada}"]
+    except KeyError:
+        raise HTTPException(status_code=402, detail="Temporada no existeix")
 
-    files = sorted(files, key=lambda f: int(f.stem.removeprefix(f"s{temporada}e"))) #Sort in ascending order
+    #Get the episode data
+    episodeContents = []
+    for episode in range(1, numEpisodes+1):
+        key = f"s{temporada}e{episode}"
+        data = db.get(key)
+        data["value"] = json.loads(data["value"])
+        episodeContents.append(data)
 
-    fileContents = []
-    for file in files:
-        with open(file) as f:
-            fileContents.append(json.load(f))
-
-    return fileContents
+    return episodeContents
 
 def search_word(word: str, text: str):
     for w in text.split(sep=" "):
@@ -86,42 +110,27 @@ def search_word(word: str, text: str):
 
 @app.get("/busca-episodi/{cerca}", tags=["Informació episodis"], description="Busca un episodi a partir d'una paraula clau.")
 def busca_epsiodi(cerca: str, cerca_descripcio: Union[bool, None] = False):
-    #Get the episode data
-    filepath = Path("dataJSON/parsedData/")
-    files = [f for f in filepath.iterdir() if f.is_file()]
-    fileContents = []
-    for file in files:
-        with open(file) as f:
-            fileContents.append(json.load(f))
+    #Get the episode data from continguts in the database
+    continguts = db.get("continguts")
+    keys = list(continguts.keys())
+    keys.remove("key") #remove continguts key
 
     matchingEps = []
-    for episode in fileContents:
-        # if episode["videoTitle"].lower().find(cerca.lower()) != -1:
-        #     matchingEps.append(episode)
-        # elif cerca_descripcio and episode["videoDescription"].lower().find(cerca.lower()) != -1:
-        #     matchingEps.append(episode)
-        if search_word(cerca.lower(), episode["videoTitle"].lower()):
-            matchingEps.append(episode)
-        elif cerca_descripcio:
-            if search_word(cerca.lower(), episode["videoDescription"].lower()):
-                matchingEps.append(episode)
+    for temporada in keys:
+        #Get the amount of episodes in the season
+        numEpisodes = continguts[temporada]
+
+        print(f"Searching in {temporada} with {numEpisodes} episodes")
+        temporada = temporada.replace("Temporada ", "")
+        #Get the episode data
+        for episode in range(1, numEpisodes+1):
+            key = f"s{temporada}e{episode}"
+            data = db.get(key)
+            data["value"] = json.loads(data["value"])
+            if search_word(cerca, data["value"]["videoTitle"].lower()):
+                matchingEps.append(data)
+            elif cerca_descripcio:
+                if search_word(cerca, data["value"]["videoDescription"].lower()):
+                    matchingEps.append(data)
 
     return matchingEps
-
-@app.get("/test-DetaBase", tags=["Informació episodis"], description="Test de la base de dades.")
-def test_DetaBase():
-    from deta import Deta
-    from pathlib import Path
-    
-    # Initialize with a Project Key from DetaBaseKey.txt
-    with open("DetaBaseKey.txt") as f:
-        key = f.read()
-    
-    deta = Deta(key)
-    db = deta.Base("bricoheroes-base")
-    
-    # Read from the database
-    data = db.get("s1e1")
-    data["value"] = json.loads(data["value"])
-    
-    return data
