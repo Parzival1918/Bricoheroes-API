@@ -5,6 +5,7 @@ from typing import Union
 import json
 from random import choice
 from deta import Deta
+from pydantic import BaseModel
 
 # Initialize with a Project Key from DetaBaseKey.txt
 with open("DetaBaseKey.txt") as f:
@@ -38,7 +39,29 @@ app = FastAPI(
     redoc_url="/alt-docs",
 )
 
-@app.get("/info-episodi/{temporada}/{episodi}", tags=["Informació episodis"], description="Obté l'informació d'un episodi.")
+class VideoDescription(BaseModel):
+    height: int
+    url: str
+    width: int
+
+class VideoTumbnails(BaseModel):
+    default: VideoDescription
+    medium: VideoDescription
+    high: VideoDescription
+    standard: VideoDescription
+    maxres: VideoDescription
+
+class InfoEpisodi(BaseModel):
+    videoId: str
+    videoTitle: str
+    videoDescription: str
+    videoThumbnails: VideoTumbnails
+    videoDate: str
+    videoLink: str
+    season: int
+    episode: int
+
+@app.get("/info-episodi/{temporada}/{episodi}", tags=["Informació episodis"], description="Obté l'informació d'un episodi.", response_model=InfoEpisodi)
 def informacio_episodi(temporada: int, episodi: int):
     # Create the key
     key = f"s{temporada}e{episodi}"
@@ -50,9 +73,9 @@ def informacio_episodi(temporada: int, episodi: int):
 
     data["value"] = json.loads(data["value"])    
 
-    return data
+    return data["value"]
 
-@app.get("/episodi-aleatori", tags=["Informació episodis"], description="Obté l'informació d'un episodi aleatori de la sèrie.")
+@app.get("/episodi-aleatori", tags=["Informació episodis"], description="Obté l'informació d'un episodi aleatori de la sèrie.", response_model=InfoEpisodi)
 def episodi_aleatori(inclou_extres: Union[bool, None] = False):
     # Get the episode data from continguts in the database
     continguts = db.get("continguts")
@@ -77,9 +100,12 @@ def episodi_aleatori(inclou_extres: Union[bool, None] = False):
     data = db.get(key)
     data["value"] = json.loads(data["value"])
 
-    return data
+    return data["value"]
 
-@app.get("/episodis-temporada/{temporada}", tags=["Informació episodis"], description="Obté tots els episodis d'una temporada.")
+class InfoEpisodis(BaseModel):
+    episodis: list[InfoEpisodi]
+
+@app.get("/episodis-temporada/{temporada}", tags=["Informació episodis"], description="Obté tots els episodis d'una temporada.", response_model=InfoEpisodis)
 def episodis_temporada(temporada: int):
     #Get the amount of episodes in the season
     continguts = db.get("continguts")
@@ -94,9 +120,9 @@ def episodis_temporada(temporada: int):
         key = f"s{temporada}e{episode}"
         data = db.get(key)
         data["value"] = json.loads(data["value"])
-        episodeContents.append(data)
+        episodeContents.append(data["value"])
 
-    return episodeContents
+    return {"episodis": episodeContents}
 
 def search_word(word: str, text: str):
     for w in text.split(sep=" "):
@@ -106,9 +132,11 @@ def search_word(word: str, text: str):
         if (word in w or w in word) and abs(len(word)-len(w)) <= 2 and len(w) > 2:
             print(f"Matching {w} |-| {word}")
             return True
+        
+    return False
 
-@app.get("/busca-episodi/{cerca}", tags=["Informació episodis"], description="Busca un episodi a partir d'una paraula clau.")
-def busca_epsiodi(cerca: str, cerca_descripcio: Union[bool, None] = False):
+@app.get("/busca-episodi/{cerca}", tags=["Informació episodis"], description="Busca un episodi a partir d'una paraula clau.", response_model=InfoEpisodis)
+def busca_epsiodi(cerca: str, cerca_descripcio: bool = False):
     #Get the episode data from continguts in the database
     continguts = db.get("continguts")
     keys = list(continguts.keys())
@@ -127,9 +155,9 @@ def busca_epsiodi(cerca: str, cerca_descripcio: Union[bool, None] = False):
             data = db.get(key)
             data["value"] = json.loads(data["value"])
             if search_word(cerca, data["value"]["videoTitle"].lower()):
-                matchingEps.append(data)
+                matchingEps.append(data["value"])
             elif cerca_descripcio:
                 if search_word(cerca, data["value"]["videoDescription"].lower()):
-                    matchingEps.append(data)
+                    matchingEps.append(data["value"])
 
-    return matchingEps
+    return {"episodis": matchingEps}
