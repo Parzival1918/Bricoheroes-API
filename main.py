@@ -1,4 +1,5 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Header
+from fastapi.responses import StreamingResponse, Response
 
 from typing import Union
 
@@ -15,6 +16,7 @@ with open("DetaBaseKey.txt") as f:
     
 deta = Deta(key)
 db = deta.Base("bricoheroes-base")
+dd = deta.Drive("bricoheroes-drive")
 
 tags_metadata = [
     {
@@ -25,6 +27,10 @@ tags_metadata = [
         "name": "Informació episodis",
         "description": "Obté informació de multiples episodis de la sèrie.",
     },
+    {
+        "name": "Descarrega episodi",
+        "description": "Descarrega un episodi de la sèrie.",
+    }
 ]
 
 description = """
@@ -168,8 +174,29 @@ def busca_epsiodi(cerca: str, cerca_descripcio: bool = False):
 
     return {"episodis": matchingEps}
 
-#Deta Space actions
+CHUNK_SIZE = 2*1024*1024 #2MB
+@app.get("/descarregar/{temporada}/{episodi}", tags=["Descarrega episodi"], description="Descarrega un episodi.")
+async def descarregar_episodi(temporada: int, episodi: int, range: str = Header(None)):
+    # Create the key
+    key = f"s{temporada}e{episodi}.mp4"
 
+    # Read from the deta drive
+    data = dd.get(key)
+    if data is None:
+        raise HTTPException(status_code=405, detail="Episodi no es pot descarregar")
+    
+    #Return the video
+    def return_video():
+        for chunk in data.iter_chunks(chunk_size=CHUNK_SIZE):
+            yield chunk
+    
+    headers = {
+            'Accept-Ranges': 'bytes'
+        }
+    
+    return StreamingResponse(return_video(), media_type="video/mp4")
+
+#Deta Space actions
 def format_selector(ctx):
     """ Select the best video and the best audio that won't result in an mkv.
     NOTE: This is just an example and does not handle all cases """
@@ -208,8 +235,6 @@ def format_selector(ctx):
     }
 
 def uploadVideos():
-    dd = deta.Drive("bricoheroes-drive")
-
     res = db.fetch()
     all_items = res.items
 

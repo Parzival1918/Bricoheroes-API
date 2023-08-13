@@ -6,6 +6,7 @@ micros:
     engine: python3.9
     primary: true
     run: uvicorn main:app
+    dev: uvicorn main:app
     public_routes:
       - "/" #docs
       - "info-episodis/*"

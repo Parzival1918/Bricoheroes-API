@@ -21,7 +21,7 @@ def format_selector(ctx):
             print(f"{f['format_id']} ext: {f['ext']} vcodec: {f['vcodec']} acodec: {f['acodec']} quality: {f['quality']} width: {f['width']} height: {f['height']}")
         except:
             pass
-        
+
     # acodec='none' means there is no audio
     best_video = next(f for f in formats
                       if f['vcodec'] != 'none' and f['acodec'] == 'none' and f['ext'] == 'mp4')
@@ -62,7 +62,7 @@ for item in all_items:
         #Check if the video is already downloaded
         dd.get(item["key"])
 
-        if dd.get(item["key"]) != None:
+        if dd.get(f"{item['key']}.mp4") != None:
             print(f"Video: {item['key']} already downloaded")
             continue
 
