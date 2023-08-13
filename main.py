@@ -174,9 +174,9 @@ def busca_epsiodi(cerca: str, cerca_descripcio: bool = False):
 
     return {"episodis": matchingEps}
 
-CHUNK_SIZE = 2*1024*1024 #2MB
+CHUNK_SIZE = 1024*5 #limit set by Deat Space
 @app.get("/descarregar/{temporada}/{episodi}", tags=["Descarrega episodi"], description="Descarrega un episodi.")
-async def descarregar_episodi(temporada: int, episodi: int, range: str = Header(None)):
+async def descarregar_episodi(temporada: int, episodi: int): #range: str = Header(None)
     # Create the key
     key = f"s{temporada}e{episodi}.mp4"
 
