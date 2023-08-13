@@ -16,8 +16,12 @@ db = deta.Base("bricoheroes-base")
 
 tags_metadata = [
     {
-        "name": "Informació episodis",
+        "name": "Informació episodi",
         "description": "Obté informació d'un episodi de la sèrie.",
+    },
+    {
+        "name": "Informació episodis",
+        "description": "Obté informació de multiples episodis de la sèrie.",
     },
 ]
 
@@ -61,7 +65,7 @@ class InfoEpisodi(BaseModel):
     season: int
     episode: int
 
-@app.get("/info-episodi/{temporada}/{episodi}", tags=["Informació episodis"], description="Obté l'informació d'un episodi.", response_model=InfoEpisodi)
+@app.get("/info-episodi/{temporada}/{episodi}", tags=["Informació episodi"], description="Obté l'informació d'un episodi.", response_model=InfoEpisodi)
 def informacio_episodi(temporada: int, episodi: int):
     # Create the key
     key = f"s{temporada}e{episodi}"
@@ -75,7 +79,7 @@ def informacio_episodi(temporada: int, episodi: int):
 
     return data["value"]
 
-@app.get("/episodi-aleatori", tags=["Informació episodis"], description="Obté l'informació d'un episodi aleatori de la sèrie.", response_model=InfoEpisodi)
+@app.get("/info-episodi/aleatori", tags=["Informació episodi"], description="Obté l'informació d'un episodi aleatori de la sèrie.", response_model=InfoEpisodi)
 def episodi_aleatori(inclou_extres: Union[bool, None] = False):
     # Get the episode data from continguts in the database
     continguts = db.get("continguts")
@@ -105,7 +109,7 @@ def episodi_aleatori(inclou_extres: Union[bool, None] = False):
 class InfoEpisodis(BaseModel):
     episodis: list[InfoEpisodi]
 
-@app.get("/episodis-temporada/{temporada}", tags=["Informació episodis"], description="Obté tots els episodis d'una temporada.", response_model=InfoEpisodis)
+@app.get("/info-episodis/temporada/{temporada}", tags=["Informació episodis"], description="Obté tots els episodis d'una temporada.", response_model=InfoEpisodis)
 def episodis_temporada(temporada: int):
     #Get the amount of episodes in the season
     continguts = db.get("continguts")
@@ -135,7 +139,7 @@ def search_word(word: str, text: str):
         
     return False
 
-@app.get("/busca-episodi/{cerca}", tags=["Informació episodis"], description="Busca un episodi a partir d'una paraula clau.", response_model=InfoEpisodis)
+@app.get("/info-episodis/cerca/{cerca}", tags=["Informació episodis"], description="Busca un episodi a partir d'una paraula clau.", response_model=InfoEpisodis)
 def busca_epsiodi(cerca: str, cerca_descripcio: bool = False):
     #Get the episode data from continguts in the database
     continguts = db.get("continguts")
