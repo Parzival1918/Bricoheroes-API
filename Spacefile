@@ -7,4 +7,13 @@ micros:
     primary: true
     run: uvicorn main:app
     public_routes:
-      - "/*"
+      - "/" #docs
+      - "info-episodis/*"
+      - "info-episodi/*"
+      - "/openapi.json"
+    actions:
+      - id: "uploadVideos"
+        name: "Upload videos to drive"
+        description: "Download videos from YT and upload to Deta Drive"
+        trigger: "schedule"
+        default_interval: "10 minutes"
