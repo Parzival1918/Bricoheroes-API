@@ -177,8 +177,8 @@ def busca_epsiodi(cerca: str, cerca_descripcio: bool = False):
 
 CHUNK_SIZE = 1024*5 #limit set by Deat Space
 MAX_DETA_SPACE = 6291556 #6MB
-@app.get("/descarregar/{temporada}/{episodi}", tags=["Descarrega episodi"], description="Descarrega un episodi.")
-async def descarregar_episodi(temporada: int, episodi: int): #start: int = 0):
+@app.get("/descarregar/{temporada}/{episodi}", tags=["Descarrega episodi"], description="Descarrega un episodi. **NO FUNCIONA**, Deta Space limita la quantitat de dades que es poden enviar.")
+async def descarregar_episodi(temporada: int, episodi: int):#, start: int = 0):
     # Create the key
     key = f"s{temporada}e{episodi}.mp4"
 
@@ -197,10 +197,10 @@ async def descarregar_episodi(temporada: int, episodi: int): #start: int = 0):
         sentAmount = 0
         for chunk in data.iter_chunks(chunk_size=CHUNK_SIZE):
             # sentAmount += CHUNK_SIZE
-            # print(f"Sent {sentAmount} bytes")
             # if sentAmount >= MAX_DETA_SPACE:
             #     break
-
+            
+            # print(f"Sent {sentAmount} bytes")
             yield chunk
     
     headers = {
