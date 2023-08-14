@@ -2,6 +2,7 @@ from fastapi import FastAPI, HTTPException, Header
 from fastapi.responses import StreamingResponse, Response
 
 from typing import Union
+import uvicorn
 
 import json
 from random import choice
@@ -175,8 +176,9 @@ def busca_epsiodi(cerca: str, cerca_descripcio: bool = False):
     return {"episodis": matchingEps}
 
 CHUNK_SIZE = 1024*5 #limit set by Deat Space
+MAX_DETA_SPACE = 6291556 #6MB
 @app.get("/descarregar/{temporada}/{episodi}", tags=["Descarrega episodi"], description="Descarrega un episodi.")
-async def descarregar_episodi(temporada: int, episodi: int): #range: str = Header(None)
+async def descarregar_episodi(temporada: int, episodi: int): #start: int = 0):
     # Create the key
     key = f"s{temporada}e{episodi}.mp4"
 
@@ -185,16 +187,27 @@ async def descarregar_episodi(temporada: int, episodi: int): #range: str = Heade
     if data is None:
         raise HTTPException(status_code=405, detail="Episodi no es pot descarregar")
     
+    # startPoint = start 
+
+    # if startPoint > 0:
+    #     data.read(startPoint-1) #Read all the data until the starting point
+    
     #Return the video
     def return_video():
+        sentAmount = 0
         for chunk in data.iter_chunks(chunk_size=CHUNK_SIZE):
+            # sentAmount += CHUNK_SIZE
+            # print(f"Sent {sentAmount} bytes")
+            # if sentAmount >= MAX_DETA_SPACE:
+            #     break
+
             yield chunk
     
     headers = {
             'Accept-Ranges': 'bytes'
         }
     
-    return StreamingResponse(return_video(), media_type="video/mp4")
+    return StreamingResponse(return_video(), media_type="video/mp4", headers=headers)
 
 #Deta Space actions
 def format_selector(ctx):
@@ -306,3 +319,6 @@ def actualitza_info(action: DetaSpaceActions):
         raise HTTPException(status_code=403, detail="Action not found")
 
     return {"message": f"Action {actionID} received"}
+
+if __name__ == "__main__":
+    uvicorn.run("main:app", host="0.0.0.0", port=8000)

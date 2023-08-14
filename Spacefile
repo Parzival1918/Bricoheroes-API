@@ -9,9 +9,10 @@ micros:
     dev: uvicorn main:app
     public_routes:
       - "/" #docs
-      - "info-episodis/*"
-      - "info-episodi/*"
+      - "/info-episodis/*"
+      - "/info-episodi/*"
       - "/openapi.json"
+      - "/descarregar/*"
     actions:
       - id: "uploadVideos"
         name: "Upload videos to drive"
